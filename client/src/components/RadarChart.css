@@ -1,0 +1,21 @@
+.radar-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 0.75rem; }
+.radar-title { font-size: 13px; font-weight: 600; color: var(--text-soft); margin-bottom: 1rem; display: flex; align-items: center; gap: 6px; }
+.radar-title::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; }
+.radar-body { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+.radar-scores { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 8px; }
+.radar-score-row { display: flex; align-items: center; gap: 8px; }
+.rsr-label { font-size: 12px; color: var(--text-soft); width: 110px; flex-shrink: 0; }
+.rsr-bar-wrap { flex: 1; height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+.rsr-bar { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+.rsr-high { background: var(--green); }
+.rsr-mid { background: var(--yellow); }
+.rsr-low { background: var(--red); }
+.rsr-val { font-size: 12px; font-weight: 600; width: 36px; text-align: right; flex-shrink: 0; }
+.rsr-val-high { color: var(--green); }
+.rsr-val-mid { color: var(--yellow); }
+.rsr-val-low { color: var(--red); }
+.similarity-row { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border); }
+.sim-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+.sim-label { font-size: 12px; font-weight: 600; color: var(--text-soft); }
+.sim-badge { font-size: 13px; font-weight: 700; color: var(--accent); }
+.sim-desc { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
