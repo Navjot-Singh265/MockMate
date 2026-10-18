@@ -3,10 +3,6 @@
     {
       "source": "/api/:path*",
       "destination": "https://mockmate-production-cc4b.up.railway.app/api/:path*"
-    },
-    {
-      "source": "/auth/:path*",
-      "destination": "https://mockmate-production-cc4b.up.railway.app/auth/:path*"
     }
   ]
 }
