@@ -3,16 +3,16 @@ import { generateQuestions, ragRetrieveQuestions } from '../api';
 import './SetupPage.css';
 
 const TRACKS = [
-  { id: 'sde', icon: '💻', label: 'SDE / DSA', color: 'accent', topics: 'Arrays · Trees · DP · System Design · OOP · Complexity' },
-  { id: 'datascience', icon: '📊', label: 'Data Science & ML', color: 'blue', topics: 'ML Algorithms · Statistics · Pandas · Model Evaluation · Deep Learning · NLP · RAG' },
-  { id: 'devops', icon: '🚀', label: 'DevOps & Cloud', color: 'orange', topics: 'Docker · Kubernetes · CI/CD · AWS · Linux · Git · IaC · Networking' },
-  { id: 'hr', icon: '🤝', label: 'HR / Behavioral', color: 'green', topics: 'STAR Method · Teamwork · Leadership · Career Goals · Conflict Resolution' },
+  { id: 'sde', icon: '💻', label: 'SDE / DSA', color: 'accent', topics: 'Arrays · Trees · Graphs · Dynamic Programming · System Design · OOP · Complexity Analysis' },
+  { id: 'datascience', icon: '📊', label: 'Data Science & ML', color: 'blue', topics: 'ML Algorithms · Statistics · Pandas · Model Evaluation · Deep Learning · NLP · RAG · Vector Databases' },
+  { id: 'devops', icon: '🚀', label: 'DevOps & Cloud', color: 'orange', topics: 'Docker · Kubernetes · CI/CD · AWS · Linux · Git · Monitoring · Infrastructure as Code' },
+  { id: 'hr', icon: '🤝', label: 'HR / Behavioral', color: 'green', topics: 'STAR Method · Teamwork · Leadership · Career Goals · Conflict Resolution · Communication' },
 ];
 
 const DIFFICULTIES = [
-  { id: 'Beginner', desc: 'Conceptual basics, definitions, simple scenarios' },
-  { id: 'Intermediate', desc: 'Applied questions, trade-offs, real-world usage' },
-  { id: 'Advanced', desc: 'Deep dives, edge cases, system-level thinking' },
+  { id: 'Beginner', emoji: '🌱', desc: 'Fundamental concepts, definitions, and simple scenarios. Ideal for first-round screening.' },
+  { id: 'Intermediate', emoji: '⚡', desc: 'Applied questions, trade-offs, and real-world usage. Suitable for most campus interviews.' },
+  { id: 'Advanced', emoji: '🔥', desc: 'Deep dives, edge cases, and system-level thinking. Targets senior and product company rounds.' },
 ];
 
 const Q_COUNTS = [3, 5, 7];
@@ -28,42 +28,29 @@ export default function SetupPage({ onBegin, onBack }) {
 
   const handleStart = async () => {
     setError(''); setRagStatus('');
-    if (!track) { setError('Please choose an interview track.'); return; }
+    if (!track) { setError('Please select an interview track to continue.'); return; }
     setLoading(true);
-
     try {
       let data;
       if (useRAG) {
-        setRagStatus('🧠 Retrieving real company questions via RAG...');
+        setRagStatus('Retrieving questions from vector database...');
         try {
           data = await ragRetrieveQuestions(track, difficulty, numQ);
-          setRagStatus(`✅ Retrieved ${data.retrieved_count} real questions using ${data.embedding_model}`);
-          // Small delay to show status
-          await new Promise(r => setTimeout(r, 800));
-        } catch (ragErr) {
-          setRagStatus('⚠️ RAG service offline — using AI-generated questions');
-          await new Promise(r => setTimeout(r, 600));
+          setRagStatus(`${data.retrieved_count} questions retrieved via semantic search`);
+          await new Promise(r => setTimeout(r, 700));
+        } catch {
+          setRagStatus('Vector database offline — generating questions with AI');
+          await new Promise(r => setTimeout(r, 500));
           data = await generateQuestions(track, difficulty, numQ);
         }
       } else {
         data = await generateQuestions(track, difficulty, numQ);
       }
-
       const trackInfo = TRACKS.find(t => t.id === track);
-      onBegin({
-        track,
-        trackLabel: data.track || trackInfo?.label || track,
-        difficulty,
-        questions: data.questions,
-        numQ,
-        usedRAG: useRAG,
-        embeddingModel: data.embedding_model
-      });
+      onBegin({ track, trackLabel: data.track || trackInfo?.label || track, difficulty, questions: data.questions, numQ, usedRAG: useRAG, embeddingModel: data.embedding_model });
     } catch (err) {
-      setError(err.message.includes('fetch') ? 'Cannot connect to server. Make sure backend is running on port 5000.' : err.message);
-    } finally {
-      setLoading(false);
-    }
+      setError(err.message.includes('fetch') ? 'Unable to connect to server. Please ensure the backend is running on port 5000.' : err.message);
+    } finally { setLoading(false); }
   };
 
   return (
@@ -71,13 +58,13 @@ export default function SetupPage({ onBegin, onBack }) {
       <div className="setup-header">
         <button className="btn btn-outline btn-sm" onClick={onBack}>← Back</button>
         <div>
-          <h1 className="setup-title">Set up your interview</h1>
-          <p className="setup-sub">Choose your track, difficulty, and interview mode</p>
+          <h1 className="setup-title">Configure your interview</h1>
+          <p className="setup-sub">Select a track, difficulty level, and session length to begin.</p>
         </div>
       </div>
 
       <div className="setup-section">
-        <div className="setup-label">1. Choose interview track</div>
+        <div class="setup-label">1. Select interview track</div>
         <div className="track-grid">
           {TRACKS.map(t => (
             <div key={t.id} className={`setup-track-card track-${t.color} ${track === t.id ? 'selected' : ''}`} onClick={() => setTrack(t.id)}>
@@ -97,7 +84,7 @@ export default function SetupPage({ onBegin, onBack }) {
         <div className="diff-grid">
           {DIFFICULTIES.map(d => (
             <div key={d.id} className={`diff-card ${difficulty === d.id ? 'selected' : ''}`} onClick={() => setDifficulty(d.id)}>
-              <div className="diff-name">{d.id}</div>
+              <div className="diff-name">{d.emoji} {d.id}</div>
               <div className="diff-desc">{d.desc}</div>
             </div>
           ))}
@@ -113,10 +100,11 @@ export default function SetupPage({ onBegin, onBack }) {
             </button>
           ))}
         </div>
+        <p className="hint" style={{marginTop:8}}>A 5-question session takes approximately 15–20 minutes.</p>
       </div>
 
       <div className="setup-section">
-        <div className="setup-label">4. Interview mode</div>
+        <div className="setup-label">4. Question source</div>
         <div className="mode-grid">
           <div className={`mode-card ${useRAG ? 'selected' : ''}`} onClick={() => setUseRAG(true)}>
             <div className="mode-top">
@@ -125,7 +113,7 @@ export default function SetupPage({ onBegin, onBack }) {
               {useRAG && <span className="mode-check">✓</span>}
               <span className="mode-badge">Recommended</span>
             </div>
-            <p className="mode-desc">Real questions from Google, Amazon, Microsoft retrieved via semantic search on ChromaDB vector database using sentence embeddings.</p>
+            <p className="mode-desc">Retrieves real interview questions from companies like Google, Amazon, and Microsoft using semantic search on a ChromaDB vector database with sentence embeddings.</p>
             <div className="mode-tags">
               <span className="mtag">ChromaDB</span>
               <span className="mtag">Sentence Transformers</span>
@@ -138,10 +126,10 @@ export default function SetupPage({ onBegin, onBack }) {
               <span className="mode-name">AI Generated</span>
               {!useRAG && <span className="mode-check">✓</span>}
             </div>
-            <p className="mode-desc">Claude generates fresh questions tailored to your profile. More variety, no vector DB required.</p>
+            <p className="mode-desc">Generates fresh questions tailored to your selected track and difficulty using the Groq language model. Offers more variety and does not require the RAG service.</p>
             <div className="mode-tags">
-              <span className="mtag">Claude API</span>
-              <span className="mtag">Dynamic</span>
+              <span className="mtag">Groq AI</span>
+              <span className="mtag">Dynamic generation</span>
             </div>
           </div>
         </div>
@@ -158,13 +146,13 @@ export default function SetupPage({ onBegin, onBack }) {
       {loading && !ragStatus && (
         <div className="loading-row">
           <div className="spinner spinner-lg" />
-          <p>Preparing your interview questions...</p>
+          <p>Preparing your interview session...</p>
         </div>
       )}
 
       <div className="btn-row" style={{ marginTop: '1.5rem' }}>
         <button className="btn btn-primary btn-lg" onClick={handleStart} disabled={loading}>
-          {loading ? 'Preparing...' : '⚡ Start interview'}
+          {loading ? 'Preparing session...' : '⚡ Begin interview'}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 require('dotenv').config();
+const mongoose = require('mongoose');
 const express = require('express');
 const cors = require('cors');
 
@@ -290,6 +291,14 @@ Respond ONLY with valid JSON (numbers 1-10):
 
 app.use((err, req, res, next) => res.status(500).json({ error: err.message }));
 
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('✅ MongoDB connected successfully');
+  })
+  .catch((error) => {
+    console.error('❌ MongoDB connection failed:', error.message);
+  });
+  
 app.listen(PORT, () => {
   console.log(`✅ MockMate server running on http://localhost:${PORT}`);
   console.log(`🤖 Using Groq (${MODEL}) — FREE!`);

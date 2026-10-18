@@ -1,3 +1,4 @@
+.hist-sync-note { font-size: 12px; color: var(--text-muted); padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); }
 .hist-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem 1.25rem; margin-bottom: 0.75rem; transition: border-color 0.15s; }
 .hist-card:hover { border-color: var(--border-strong); }
 .hist-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -5,15 +6,15 @@
 .hist-score.high { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
 .hist-score.mid { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
 .hist-score.low { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
-.hist-meta { flex: 1; }
-.hist-title { font-size: 14px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.hist-title { font-size: 14px; font-weight: 500; color: var(--text); display: flex; align-items: center; }
 .hist-date { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.hist-readiness { font-size: 13px; color: var(--text-soft); margin-top: 6px; padding-left: 58px; }
-.hist-expand { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem; display: flex; flex-direction: column; gap: 6px; }
-.hist-q-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--surface2); border-radius: var(--radius); }
+.hist-readiness { font-size: 12px; color: var(--text-soft); margin-top: 8px; padding-left: 58px; }
+.hist-expand { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem; display: flex; flex-direction: column; gap: 5px; }
+.hist-q-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--surface2); border-radius: var(--radius); }
 .hist-q-num { font-size: 11px; font-weight: 700; color: var(--text-muted); width: 24px; flex-shrink: 0; }
 .hist-q-text { font-size: 12px; color: var(--text-soft); flex: 1; line-height: 1.4; }
 .hist-q-score { font-size: 12px; font-weight: 700; flex-shrink: 0; }
 .hist-q-score.high { color: var(--green); }
 .hist-q-score.mid { color: var(--yellow); }
 .hist-q-score.low { color: var(--red); }
+.hist-priorities { margin-top: 10px; padding: 10px; background: var(--surface2); border-radius: var(--radius); }

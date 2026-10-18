@@ -9,9 +9,7 @@ export function useVoice(onTranscript) {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
     const rec = new SR();
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.lang = 'en-IN';
+    rec.continuous = true; rec.interimResults = true; rec.lang = 'en-IN';
     rec.onresult = (e) => {
       let final = '', interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -28,11 +26,10 @@ export function useVoice(onTranscript) {
   }, [onTranscript]);
 
   const stop = useCallback(() => {
-    if (recRef.current) { try { recRef.current.stop(); } catch(e) {} recRef.current = null; }
+    if (recRef.current) { try { recRef.current.stop(); } catch {} recRef.current = null; }
     setIsRecording(false);
   }, []);
 
   const toggle = useCallback(() => { isRecording ? stop() : start(); }, [isRecording, start, stop]);
-
   return { isRecording, supported, toggle, stop };
 }
