@@ -1,6 +1,12 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "mockmate-production-cc4b.up.railway.app" },
-    { "source": "/auth/:path*", "destination": "mockmate-production-cc4b.up.railway.app" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://mockmate-production-cc4b.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://mockmate-production-cc4b.up.railway.app/auth/:path*"
+    }
   ]
 }
