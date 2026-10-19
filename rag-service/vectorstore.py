@@ -58,50 +58,104 @@ def populate_collection(collection):
 def retrieve_questions(track: str, difficulty: str, n: int = 5, exclude_ids: list = []):
     """
     Retrieve semantically relevant questions for a track + difficulty.
-    Uses cosine similarity on embeddings — this is the RAG retrieval step.
+    First tries exact track + difficulty.
+    If not enough questions are available, fills remaining questions
+    from the same track.
     """
     collection = get_or_create_collection()
 
-    # Create a query from track + difficulty context
     query = f"{difficulty} {track} interview questions technical skills"
     query_embedding = model.encode([query])[0].tolist()
 
-    # Filter by track and difficulty
-    where_filter = {
+    questions = []
+    used_ids = set(exclude_ids)
+
+    # ---------------------------------------------------------
+    # 1. FIRST: exact track + difficulty
+    # ---------------------------------------------------------
+    exact_filter = {
         "$and": [
             {"track": {"$eq": track}},
             {"difficulty": {"$eq": difficulty}}
         ]
     }
 
-    # Query ChromaDB — returns most semantically similar questions
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=min(n + len(exclude_ids) + 5, 20),
-        where=where_filter,
+        where=exact_filter,
         include=["documents", "metadatas", "distances"]
     )
 
-    # Build question objects, exclude already-asked ones
-    questions = []
     for i, doc_id in enumerate(results["ids"][0]):
-        if doc_id in exclude_ids:
+        if doc_id in used_ids:
             continue
-        if len(questions) >= n:
-            break
 
-        # Find full question data
-        q_data = next((q for q in QUESTIONS if q["id"] == doc_id), None)
+        q_data = next(
+            (q for q in QUESTIONS if q["id"] == doc_id),
+            None
+        )
+
         if q_data:
-            similarity = 1 - results["distances"][0][i]  # Convert distance to similarity
+            similarity = 1 - results["distances"][0][i]
+
             questions.append({
                 **q_data,
                 "similarity_score": round(similarity, 3),
                 "hasCoding": q_data["type"] == "Coding",
                 "codeStarter": "// Write your solution here\n",
                 "expectedOutput": "",
-                "followUp": f"Can you explain the time and space complexity of your approach?"
+                "followUp": "Can you explain the time and space complexity of your approach?"
             })
+
+            used_ids.add(doc_id)
+
+        if len(questions) >= n:
+            break
+
+    # ---------------------------------------------------------
+    # 2. FALLBACK: same track, any difficulty
+    # ---------------------------------------------------------
+    if len(questions) < n:
+
+        remaining = n - len(questions)
+
+        track_filter = {
+            "track": {"$eq": track}
+        }
+
+        fallback_results = collection.query(
+            query_embeddings=[query_embedding],
+            n_results=min(remaining + len(used_ids) + 5, 20),
+            where=track_filter,
+            include=["documents", "metadatas", "distances"]
+        )
+
+        for i, doc_id in enumerate(fallback_results["ids"][0]):
+            if doc_id in used_ids:
+                continue
+
+            q_data = next(
+                (q for q in QUESTIONS if q["id"] == doc_id),
+                None
+            )
+
+            if q_data:
+                similarity = 1 - fallback_results["distances"][0][i]
+
+                questions.append({
+                    **q_data,
+                    "similarity_score": round(similarity, 3),
+                    "hasCoding": q_data["type"] == "Coding",
+                    "codeStarter": "// Write your solution here\n",
+                    "expectedOutput": "",
+                    "followUp": "Can you explain the time and space complexity of your approach?"
+                })
+
+                used_ids.add(doc_id)
+
+            if len(questions) >= n:
+                break
 
     return questions
 
