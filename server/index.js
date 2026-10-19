@@ -11,23 +11,24 @@ const PORT = process.env.PORT || 5000;
 // CORS
 // ─────────────────────────────────────────────────────────────
 
+
+
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://mock-mate-weld.vercel.app'
+  'https://mock-mate-weld.vercel.app',
+  'https://mock-mate-git-main-hi-3932.vercel.app'
 ];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS blocked: ${origin}`));
-      }
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
     }
-  })
-);
+  }
+}));
 
 app.use(express.json());
 
