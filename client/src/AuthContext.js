@@ -37,7 +37,6 @@ export function AuthProvider({ children }) {
   );
 }
 
-window.location.href = 'https://mockmate-production-cc4b.up.railway.app/auth/github';
 
 export function useAuth() {
   return useContext(AuthContext);
