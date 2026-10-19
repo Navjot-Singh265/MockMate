@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import anthropic
 import os
+import uvicorn
 from dotenv import load_dotenv
 from vectorstore import retrieve_questions, compute_similarity
 
@@ -142,5 +143,6 @@ Respond ONLY with valid JSON (no markdown):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", "8080"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
