@@ -1,4 +1,4 @@
-const BASE = '/api';
+const BASE = 'https://mockmate-production-cc4b.up.railway.app/api';
 
 const getToken = () => localStorage.getItem('mockmate_token');
 
