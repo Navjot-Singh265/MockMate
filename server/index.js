@@ -3,6 +3,8 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,6 +33,40 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// ─────────────────────────────────────────────────────────────
+// GITHUB AUTH
+// ─────────────────────────────────────────────────────────────
+
+const userSchema = new mongoose.Schema(
+  {
+    githubId: {
+      type: String,
+      unique: true,
+      required: true
+    },
+    username: String,
+    email: String,
+    avatarUrl: String
+  },
+  {
+    timestamps: true
+  }
+);
+
+const User =
+  mongoose.models.User ||
+  mongoose.model('User', userSchema);
+
+const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
+const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
+
+const FRONTEND_URL =
+  process.env.FRONTEND_URL ||
+  'https://mock-mate-git-main-hi-3932.vercel.app';
+
+const GITHUB_CALLBACK_URL =
+  `${process.env.BACKEND_URL || 'https://mockmate-production-cc4b.up.railway.app'}/auth/github/callback`;
 
 // ─────────────────────────────────────────────────────────────
 // GROQ CONFIG
@@ -878,6 +914,223 @@ Every score must be between 1 and 10.
 
     res.status(500).json({
       error: err.message
+    });
+  }
+});
+// ─────────────────────────────────────────────────────────────
+// GITHUB OAUTH
+// ─────────────────────────────────────────────────────────────
+
+// Start GitHub login
+app.get('/auth/github', (req, res) => {
+  if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
+    return res.status(500).send('GitHub OAuth is not configured');
+  }
+
+  const state = crypto.randomBytes(32).toString('hex');
+
+  res.setHeader(
+    'Set-Cookie',
+    `github_oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Max-Age=600; Path=/`
+  );
+
+  const params = new URLSearchParams({
+    client_id: GITHUB_CLIENT_ID,
+    redirect_uri: GITHUB_CALLBACK_URL,
+    scope: 'read:user user:email',
+    state
+  });
+
+  res.redirect(
+    `https://github.com/login/oauth/authorize?${params.toString()}`
+  );
+});
+
+
+// GitHub callback
+app.get('/auth/github/callback', async (req, res) => {
+  try {
+    const { code, state } = req.query;
+
+    if (!code || !state) {
+      return res.status(400).send('Missing GitHub OAuth code or state');
+    }
+
+    // Read OAuth state cookie
+    const cookies = req.headers.cookie || '';
+
+    const stateCookie = cookies
+      .split(';')
+      .map(c => c.trim())
+      .find(c => c.startsWith('github_oauth_state='));
+
+    const savedState = stateCookie
+      ? stateCookie.split('=')[1]
+      : null;
+
+    if (!savedState || savedState !== state) {
+      return res.status(400).send('Invalid OAuth state');
+    }
+
+    // Exchange GitHub code for access token
+    const tokenResponse = await fetch(
+      'https://github.com/login/oauth/access_token',
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          client_id: GITHUB_CLIENT_ID,
+          client_secret: GITHUB_CLIENT_SECRET,
+          code,
+          redirect_uri: GITHUB_CALLBACK_URL
+        })
+      }
+    );
+
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenData.access_token) {
+      console.error('GitHub token error:', tokenData);
+
+      return res.status(400).send(
+        'GitHub authentication failed'
+      );
+    }
+
+    const githubToken = tokenData.access_token;
+
+    // Get GitHub profile
+    const githubUserResponse = await fetch(
+      'https://api.github.com/user',
+      {
+        headers: {
+          Authorization: `Bearer ${githubToken}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'MockMate'
+        }
+      }
+    );
+
+    const githubUser = await githubUserResponse.json();
+
+    if (!githubUser.id) {
+      return res.status(400).send(
+        'Could not retrieve GitHub profile'
+      );
+    }
+
+    // Get GitHub email
+    const emailResponse = await fetch(
+      'https://api.github.com/user/emails',
+      {
+        headers: {
+          Authorization: `Bearer ${githubToken}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'MockMate'
+        }
+      }
+    );
+
+    const emails = await emailResponse.json();
+
+    const primaryEmail =
+      Array.isArray(emails)
+        ? emails.find(e => e.primary)?.email ||
+          emails[0]?.email ||
+          ''
+        : '';
+
+    // Create/update user in MongoDB
+    const user = await User.findOneAndUpdate(
+      { githubId: String(githubUser.id) },
+      {
+        githubId: String(githubUser.id),
+        username: githubUser.login,
+        email: primaryEmail,
+        avatarUrl: githubUser.avatar_url
+      },
+      {
+        new: true,
+        upsert: true
+      }
+    );
+
+    // Create MockMate JWT
+    const token = jwt.sign(
+      {
+        userId: user._id.toString(),
+        githubId: user.githubId,
+        username: user.username
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: '7d'
+      }
+    );
+
+    // Redirect to frontend
+    res.setHeader(
+      'Set-Cookie',
+      'github_oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/'
+    );
+
+    res.redirect(
+      `${FRONTEND_URL}/#github_token=${encodeURIComponent(token)}`
+    );
+
+  } catch (err) {
+    console.error('❌ GitHub OAuth error:', err);
+
+    res.status(500).send(
+      'GitHub authentication failed'
+    );
+  }
+});
+
+
+// Get logged-in user
+app.get('/auth/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({
+        error: 'Unauthorized'
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    const user = await User.findById(decoded.userId)
+      .select('-__v');
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    res.json({
+      user: {
+        id: user._id,
+        githubId: user.githubId,
+        username: user.username,
+        email: user.email,
+        avatarUrl: user.avatarUrl
+      }
+    });
+
+  } catch (err) {
+    res.status(401).json({
+      error: 'Invalid or expired token'
     });
   }
 });
