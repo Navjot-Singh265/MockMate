@@ -751,56 +751,47 @@ const RAG_URL =
   process.env.RAG_SERVICE_URL ||
   'http://localhost:8000';
 
-// RAG Questions
+/// RAG Questions
 app.post('/api/rag/questions', async (req, res) => {
   try {
-    const response = await fetch(
-      `${RAG_URL}/retrieve`,
-      {
-        method: 'POST',
+    const response = await fetch(`${RAG_URL}/retrieve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        track: req.body.track,
+        difficulty: req.body.difficulty,
+        num_questions: req.body.numQuestions || 5,
+        exclude_ids: req.body.excludeIds || []
+      })
+    });
 
-        headers: {
-          'Content-Type': 'application/json'
-        },
+    const text = await response.text();
 
-        body: JSON.stringify({
-          track: req.body.track,
+    console.log('🔵 RAG status:', response.status);
+    console.log('🔵 RAG response:', text);
 
-          difficulty:
-            req.body.difficulty,
-
-          num_questions:
-            req.body.numQuestions || 5,
-
-          exclude_ids:
-            req.body.excludeIds || []
-        })
-      }
-    );
-
-    const data =
-      await response.json();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: text };
+    }
 
     if (!response.ok) {
-      throw new Error(
-        data.detail || 'RAG error'
-      );
+      return res.status(response.status).json({
+        error: data.detail || data.error || 'RAG service error'
+      });
     }
 
     res.json(data);
 
   } catch (err) {
-    console.error(
-      '❌ RAG questions error:',
-      err.message
-    );
-
-    res.status(500).json({
-      error: 'RAG service unavailable'
-    });
+    console.error('❌ RAG connection error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
-
 // RAG Similarity
 app.post('/api/rag/similarity', async (req, res) => {
   try {
