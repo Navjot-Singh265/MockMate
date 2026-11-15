@@ -1,5 +1,4 @@
-const BASE = 'https://mockmate-production-cc4b.up.railway.app/api';
-
+const BASE = 'https://mockmate-awhj.onrender.com/api';
 const getToken = () => localStorage.getItem('mockmate_token');
 
 const authHeaders = () => ({
