@@ -1,7 +1,7 @@
 'use strict';
 
-// Port of rag-service/questions_data.py. Kept dependency-free so the server can
-// use the same question bank without Python, ChromaDB, or an embedding model.
+// Port of rag-service/questions_data.py.
+// This version does not need Python, ChromaDB, or an embedding model.
 const QUESTION_DATA = [
   // SDE / DSA
   { id:'sde_001', question:'Given an array of integers, find two numbers that add up to a target sum.', category:'Arrays', track:'sde', difficulty:'Beginner', company:'Amazon', year:2024, type:'Coding', tip:'Use a hash map for O(n) solution' },
@@ -24,6 +24,7 @@ const QUESTION_DATA = [
   { id:'sde_018', question:'Explain how HashMap works internally in Java.', category:'Data Structures', track:'sde', difficulty:'Intermediate', company:'TCS Digital', year:2024, type:'Conceptual', tip:'Array of buckets, hashCode(), equals(), chaining for collisions' },
   { id:'sde_019', question:'Given a sorted array rotated at some pivot, find an element in O(log n).', category:'Binary Search', track:'sde', difficulty:'Advanced', company:'Amazon', year:2024, type:'Coding', tip:'Modified binary search, check which half is sorted' },
   { id:'sde_020', question:'What is the difference between process and thread? How does context switching work?', category:'Operating Systems', track:'sde', difficulty:'Intermediate', company:'Microsoft', year:2023, type:'Conceptual', tip:'Process has own memory, threads share memory, OS scheduler manages context switching' },
+
   // Data Science & ML
   { id:'ds_001', question:'Explain the bias-variance tradeoff. How do you balance it in practice?', category:'ML Fundamentals', track:'datascience', difficulty:'Intermediate', company:'Amazon', year:2024, type:'Conceptual', tip:'High bias = underfitting, high variance = overfitting, regularization helps' },
   { id:'ds_002', question:'What is the difference between bagging and boosting? Give examples of each.', category:'Ensemble Methods', track:'datascience', difficulty:'Intermediate', company:'Flipkart', year:2024, type:'Conceptual', tip:'Bagging: Random Forest (parallel), Boosting: XGBoost/AdaBoost (sequential)' },
@@ -45,6 +46,7 @@ const QUESTION_DATA = [
   { id:'ds_018', question:'Write Python code to implement k-means clustering from scratch.', category:'Python & ML', track:'datascience', difficulty:'Advanced', company:'Google', year:2023, type:'Coding', tip:'Random init centroids, assign clusters, update centroids, repeat until convergence' },
   { id:'ds_019', question:'What is A/B testing? How would you design one to test a new recommendation algorithm?', category:'Statistics', track:'datascience', difficulty:'Intermediate', company:'Swiggy', year:2024, type:'Scenario', tip:'Control vs treatment group, statistical significance, p-value < 0.05, sample size' },
   { id:'ds_020', question:'Explain RAG (Retrieval Augmented Generation). How is it better than fine-tuning?', category:'GenAI & LLMs', track:'datascience', difficulty:'Advanced', company:'Microsoft', year:2024, type:'Conceptual', tip:'RAG retrieves external knowledge at inference, cheaper and more updatable than fine-tuning' },
+
   // DevOps & Cloud
   { id:'dv_001', question:'Explain the difference between a Docker container and a virtual machine.', category:'Docker', track:'devops', difficulty:'Beginner', company:'Atlassian', year:2024, type:'Conceptual', tip:'Containers share OS kernel, VMs have full OS — containers are lighter and faster' },
   { id:'dv_002', question:'Write a Dockerfile for a Node.js application. What are the best practices?', category:'Docker', track:'devops', difficulty:'Intermediate', company:'Razorpay', year:2024, type:'Practical', tip:'Use alpine base, multi-stage builds, .dockerignore, non-root user, minimal layers' },
@@ -61,6 +63,7 @@ const QUESTION_DATA = [
   { id:'dv_013', question:'What are microservices? What are the challenges of microservices vs monolith?', category:'Architecture', track:'devops', difficulty:'Advanced', company:'Flipkart', year:2024, type:'Conceptual', tip:'Independent deployability, network latency, distributed tracing, service discovery' },
   { id:'dv_014', question:'How does Kubernetes handle container failures? Explain liveness and readiness probes.', category:'Kubernetes', track:'devops', difficulty:'Advanced', company:'Google', year:2024, type:'Conceptual', tip:'Liveness: restart if dead, Readiness: route traffic only when ready' },
   { id:'dv_015', question:'Write a GitHub Actions workflow to test and deploy a React app to AWS S3.', category:'CI/CD', track:'devops', difficulty:'Advanced', company:'Tekion', year:2024, type:'Practical', tip:'On push, jobs: test then build then aws s3 sync, use secrets for credentials' },
+
   // HR / Behavioral
   { id:'hr_001', question:'Tell me about yourself and your technical background.', category:'Introduction', track:'hr', difficulty:'Beginner', company:'All companies', year:2024, type:'Behavioral', tip:'Present → past → future: current skills, what you built, where you want to go' },
   { id:'hr_002', question:'Describe a time you faced a difficult technical problem. How did you solve it?', category:'Problem Solving', track:'hr', difficulty:'Beginner', company:'Microsoft', year:2024, type:'Behavioral', tip:'STAR method: Situation, Task, Action, Result — be specific with technical details' },
@@ -68,72 +71,166 @@ const QUESTION_DATA = [
   { id:'hr_004', question:'Tell me about a time you disagreed with a teammate. What did you do?', category:'Teamwork', track:'hr', difficulty:'Intermediate', company:'Amazon', year:2024, type:'Behavioral', tip:'Focus on communication, data-driven resolution, team outcome over ego' },
   { id:'hr_005', question:'Why do you want to work at this company specifically?', category:'Motivation', track:'hr', difficulty:'Beginner', company:'All companies', year:2024, type:'Behavioral', tip:'Research the company — mention product, culture, tech stack, growth' },
 ];
-
 const STOP_WORDS = new Set(('a an and are as at be by for from how i in is it of on or that the this to was what when where which who why with would you your').split(' '));
+
 function tokenize(value) {
   return String(value || '').toLowerCase().match(/[a-z0-9]+/g)?.filter(token => !STOP_WORDS.has(token)) || [];
 }
+
 function vectorize(text, documents) {
   const tokens = tokenize(text);
   const counts = new Map();
-  for (const token of tokens) counts.set(token, (counts.get(token) || 0) + 1);
+
+  for (const token of tokens) {
+    counts.set(token, (counts.get(token) || 0) + 1);
+  }
+
   const total = tokens.length || 1;
   const df = new Map();
+
   for (const document of documents) {
-    for (const token of new Set(tokenize(document))) df.set(token, (df.get(token) || 0) + 1);
+    for (const token of new Set(tokenize(document))) {
+      df.set(token, (df.get(token) || 0) + 1);
+    }
   }
+
   const vector = new Map();
+
   for (const [token, count] of counts) {
     const idf = Math.log(1 + (documents.length + 1) / (1 + (df.get(token) || 0)));
     vector.set(token, (count / total) * idf);
   }
+
   return vector;
 }
+
 function cosineVectors(a, b) {
-  let dot = 0, normA = 0, normB = 0;
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+
   for (const value of a.values()) normA += value * value;
   for (const value of b.values()) normB += value * value;
   for (const [term, value] of a) dot += value * (b.get(term) || 0);
-  return normA && normB ? dot / (Math.sqrt(normA) * Math.sqrt(normB)) : 0;
+
+  return normA && normB
+    ? dot / (Math.sqrt(normA) * Math.sqrt(normB))
+    : 0;
 }
 
-/** TF-IDF cosine similarity for candidate and ideal answer text; returns [0, 1]. */
+// Returns a similarity score between 0 and 1.
 function computeSimilarity(candidateAnswer, idealAnswer) {
-  const docs = [String(candidateAnswer || ''), String(idealAnswer || '')];
-  return Number(cosineVectors(vectorize(docs[0], docs), vectorize(docs[1], docs)).toFixed(6));
+  const docs = [
+    String(candidateAnswer || ''),
+    String(idealAnswer || ''),
+  ];
+
+  return Number(
+    cosineVectors(
+      vectorize(docs[0], docs),
+      vectorize(docs[1], docs)
+    ).toFixed(6)
+  );
 }
 
-/**
- * Retrieve ranked questions. Options: track, difficulty, n/num_questions,
- * exclude_ids/excludeIds, query/searchQuery. Track and difficulty are optional.
- */
+// Retrieves questions by track and difficulty, with fallback questions.
 function retrieveQuestions(options = {}) {
   const track = options.track;
   const difficulty = options.difficulty;
-  const requested = Number(options.n ?? options.num_questions ?? options.numQuestions ?? 5);
-  const limit = Number.isFinite(requested) ? Math.max(0, Math.floor(requested)) : 5;
-  const excluded = new Set(options.exclude_ids || options.excludeIds || []);
+
+  const requested = Number(
+    options.n ??
+    options.num_questions ??
+    options.numQuestions ??
+    5
+  );
+
+  const limit = Number.isFinite(requested)
+    ? Math.max(0, Math.floor(requested))
+    : 5;
+
+  if (limit === 0) return [];
+
+  const excluded = new Set([
+    ...(Array.isArray(options.exclude_ids) ? options.exclude_ids : []),
+    ...(Array.isArray(options.excludeIds) ? options.excludeIds : []),
+  ]);
+
   const normalized = value => String(value || '').trim().toLowerCase();
-  const candidates = QUESTION_DATA.filter(item =>
-    (!track || normalized(item.track) === normalized(track)) &&
+
+  const matchesTrack = item =>
+    !track || normalized(item.track) === normalized(track);
+
+  const exactMatches = QUESTION_DATA.filter(item =>
+    matchesTrack(item) &&
     (!difficulty || normalized(item.difficulty) === normalized(difficulty)) &&
     !excluded.has(item.id)
   );
-  const query = options.query ?? options.searchQuery ?? [track, difficulty].filter(Boolean).join(' ');
-  const documents = QUESTION_DATA.map(item => `${item.question} ${item.category} ${item.track} ${item.difficulty} ${item.tip}`);
+
+  const fallbackMatches = difficulty
+    ? QUESTION_DATA.filter(item =>
+        matchesTrack(item) &&
+        normalized(item.difficulty) !== normalized(difficulty) &&
+        !excluded.has(item.id)
+      )
+    : [];
+
+  const query =
+    options.query ??
+    options.searchQuery ??
+    [track, difficulty].filter(Boolean).join(' ');
+
+  const documents = QUESTION_DATA.map(item =>
+    `${item.question} ${item.category} ${item.track} ${item.difficulty} ${item.tip}`
+  );
+
   const queryVector = vectorize(query, [String(query || ''), ...documents]);
-  return candidates.map(item => {
-    const document = `${item.question} ${item.category} ${item.track} ${item.difficulty} ${item.tip}`;
-    const score = cosineVectors(queryVector, vectorize(document, [String(query || ''), ...documents]));
+
+  const rank = items => items.map(item => {
+    const document =
+      `${item.question} ${item.category} ${item.track} ${item.difficulty} ${item.tip}`;
+
+    const score = cosineVectors(
+      queryVector,
+      vectorize(document, [String(query || ''), ...documents])
+    );
+
     return {
       ...item,
       similarity_score: Number(score.toFixed(6)),
       hasCoding: item.type === 'Coding',
-      codeStarter: item.codeStarter || '',
+      codeStarter: item.codeStarter || (
+        item.type === 'Coding' ? '// Write your solution here\n' : ''
+      ),
       expectedOutput: item.expectedOutput || '',
-      followUp: item.followUp || '',
+      followUp: item.followUp ||
+        'Can you explain the time and space complexity of your approach?',
     };
-  }).sort((a, b) => b.similarity_score - a.similarity_score || a.id.localeCompare(b.id)).slice(0, limit);
+  }).sort((a, b) =>
+    b.similarity_score - a.similarity_score ||
+    a.id.localeCompare(b.id)
+  );
+
+  const results = [];
+  const seenIds = new Set();
+  const seenQuestions = new Set();
+
+  for (const item of [...rank(exactMatches), ...rank(fallbackMatches)]) {
+    const questionKey = normalized(item.question);
+
+    if (seenIds.has(item.id) || seenQuestions.has(questionKey)) continue;
+
+    seenIds.add(item.id);
+    seenQuestions.add(questionKey);
+    results.push(item);
+
+    if (results.length >= limit) break;
+  }
+
+  return results;
 }
 
-module.exports = { retrieveQuestions, computeSimilarity };
+module.exports = {
+  retrieveQuestions,
+  computeSimilarity,
+};
