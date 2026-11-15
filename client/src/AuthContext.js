@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 const AuthContext = createContext(null);
 
 const API_URL =
-  'https://mockmate-production-cc4b.up.railway.app';
+  'https://mockmate-awhj.onrender.com';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
