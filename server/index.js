@@ -88,4 +88,9 @@
 +    res.json({ similarity_score: score });
  
    } catch (err) {
-     res.status(500).json({
+    console.error('❌ RAG similarity error:', err);
+    res.status(500).json({
+      error: 'Similarity unavailable'
+    });
+  }
+});
